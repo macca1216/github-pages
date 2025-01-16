@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Figure Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        #titleContainer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin: 0;
+        }
+        #titleInput {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #editTitleBtn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin-left: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        #editTitleBtn:hover {
+            background-color: #45a049;
+        }
+        #app {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #reset {
+            background-color: #f44336;
+        }
+        #reset:hover {
+            background-color: #d32f2f;
+        }
+        #results {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        #figureList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #figureList li {
+            background-color: #f9f9f9;
+            margin-bottom: 5px;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .figureInfo {
+            display: flex;
+            flex-direction: column;
+        }
+        .figureDate {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .deleteBtn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .deleteBtn:hover {
+            background-color: #d32f2f;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="titleContainer">
+            <h1 id="appTitle">Figure Tracker</h1>
+            <button id="editTitleBtn" onclick="editTitle()">Edit</button>
+        </div>
+        <input type="number" id="figureInput" placeholder="Enter a figure">
+        <button onclick="addFigure()">Add Figure</button>
+        <button id="reset" onclick="resetAll()">Reset</button>
+        <div id="results">
+            <p>Total: <span id="total">0</span></p>
+            <p>Average: <span id="average">0</span></p>
+        </div>
+        <ul id="figureList"></ul>
+    </div>
+
+    <script>
+        let figures = [];
+        let appTitle = "Figure Tracker";
+
+        // Load saved data when the page loads
+        window.onload = function() {
+            loadSavedData();
+            updateResults();
+            updateList();
+            updateTitle();
+        };
+
+        function loadSavedData() {
+            const savedFigures = localStorage.getItem('figures');
+            if (savedFigures) {
+                figures = JSON.parse(savedFigures).map(figure => ({
+                    ...figure,
+                    date: new Date(figure.date)
+                }));
+            }
+
+            const savedTitle = localStorage.getItem('appTitle');
+            if (savedTitle) {
+                appTitle = savedTitle;
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('figures', JSON.stringify(figures));
+            localStorage.setItem('appTitle', appTitle);
+        }
+
+        function editTitle() {
+            const titleContainer = document.getElementById('titleContainer');
+            titleContainer.innerHTML = `
+                <input type="text" id="titleInput" value="${appTitle}">
+                <button id="editTitleBtn" onclick="saveTitle()">Save</button>
+            `;
+            document.getElementById('titleInput').focus();
+        }
+
+        function saveTitle() {
+            appTitle = document.getElementById('titleInput').value;
+            updateTitle();
+            saveData();
+        }
+
+        function updateTitle() {
+            const titleContainer = document.getElementById('titleContainer');
+            titleContainer.innerHTML = `
+                <h1 id="appTitle">${appTitle}</h1>
+                <button id="editTitleBtn" onclick="editTitle()">Edit</button>
+            `;
+            document.title = appTitle;
+        }
+
+        function addFigure() {
+            const input = document.getElementById('figureInput');
+            const figure = parseFloat(input.value);
+
+            if (!isNaN(figure)) {
+                const now = new Date();
+                figures.push({
+                    value: figure,
+                    date: now
+                });
+                updateResults();
+                updateList();
+                input.value = '';
+                saveData();
+            } else {
+                alert('Please enter a valid number');
+            }
+        }
+
+        function updateResults() {
+            const total = figures.reduce((sum, figure) => sum + figure.value, 0);
+            const average = figures.length > 0 ? total / figures.length : 0;
+
+            document.getElementById('total').textContent = total.toFixed(2);
+            document.getElementById('average').textContent = average.toFixed(2);
+        }
+
+        function updateList() {
+            const list = document.getElementById('figureList');
+            list.innerHTML = '';
+            figures.forEach((figure, index) => {
+                const li = document.createElement('li');
+                li.className = 'fade-in';
+                li.innerHTML = `
+                    <div class="figureInfo">
+                        <span>${figure.value}</span>
+                        <span class="figureDate">${formatDate(figure.date)}</span>
+                    </div>
+                    <button class="deleteBtn" onclick="deleteFigure(${index})">Delete</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function formatDate(date) {
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function deleteFigure(index) {
+            figures.splice(index, 1);
+            updateResults();
+            updateList();
+            saveData();
+        }
+
+        function resetAll() {
+            figures = [];
+            updateResults();
+            updateList();
+            document.getElementById('figureInput').value = '';
+            saveData();
+        }
+    </script>
+</body>
+</html>
